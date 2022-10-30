@@ -12,15 +12,19 @@ import {
 import { firebase } from "../config";
 import { FontAwesome } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import validator from 'validator';
+import isEmpty from 'validator/lib/isEmpty';
+import isDate from 'validator/lib/isDate';
 
 const Home = () => {
   const [trips, setTrips] = useState([]);
   const tripRef = firebase.firestore().collection("trips");
   const [addHeading, setAddHeading] = useState("");
   const [addDestination, setAddDestination] = useState("");
-  const [addDate, setAddDate] = useState(new Date(1598051730000));
+  const [addDate, setAddDate] = useState("");
   const [addRisk, setAddRisk] = useState("");
   const [addDescription, setAddDescription] = useState("");
+  const [validationMsg, setValidationMsg] = useState("");
   const navigation = useNavigation();
   
   //fetch data
@@ -59,6 +63,8 @@ const Home = () => {
 
   //Add trip
   const addTrip = (trip) => {
+    const isValid =validateAll();
+    if(!isValid) return;
     //get the timestamp
     const timestamp = firebase.firestore.FieldValue.serverTimestamp();
     const data = {
@@ -94,12 +100,39 @@ const Home = () => {
     }
   };
 
+  const validateAll = () => {
+    const msg = {}
+    if(isEmpty(addHeading)){
+      msg.addHeading = "Please input name of trip"
+    }
+
+    if(isEmpty(addDestination)){
+      msg.addDestination = "Please input destination"
+    }
+
+    if(isEmpty(addDate)){
+      msg.addDate = "Please input date of trip"
+    }else if(!isDate(addDate)){
+      msg.addDate = "Your date is not correct. Please enter the correct format!"
+    }
+
+    if(isEmpty(addRisk)){
+      msg.addRisk = "Please input Risk Assessment"
+    }
+
+    setValidationMsg(msg)
+
+    if(Object.keys(msg).length > 0) return false;
+    return true
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <Text style={styles.firstText}>ADD A NEW TRIP</Text>
       <View style={styles.formContainer}>
         <TextInput
           style={styles.input}
+          name = "heading"
           placeholder="Name of trip*"
           placeholderTextColor="#aaaaaa"
           onChangeText={(heading) => setAddHeading(heading)}
@@ -107,6 +140,7 @@ const Home = () => {
           underlineColorAndroid="transparent"
           autoCapitalize="none"
         />
+        <Text style={styles.errMsg}>{validationMsg.addHeading}</Text>
         <TextInput
           style={styles.input}
           placeholder="Destination*"
@@ -116,15 +150,17 @@ const Home = () => {
           underlineColorAndroid="transparent"
           autoCapitalize="none"
         />
+        <Text style={styles.errMsg}>{validationMsg.addDestination}</Text>
         <TextInput
           style={styles.input}
-          placeholder="dd/MM/yyyy*"
+          placeholder="YYYY/MM/DD*"
           placeholderTextColor="#aaaaaa"
           onChangeText={(date) => setAddDate(date)}
           value={addDate}
           underlineColorAndroid="transparent"
           autoCapitalize="none"
         />
+        <Text style={styles.errMsg}>{validationMsg.addDate}</Text>
         <TextInput
           style={styles.input}
           placeholder="Risk Assessment: Yes or No*"
@@ -134,6 +170,7 @@ const Home = () => {
           underlineColorAndroid="transparent"
           autoCapitalize="none"
         />
+        <Text style={styles.errMsg}>{validationMsg.addRisk}</Text>
         <TextInput
           style={styles.input}
           placeholder="Description"
@@ -190,6 +227,14 @@ const Home = () => {
 export default Home;
 
 const styles = StyleSheet.create({
+  errMsg: {
+    marginLeft:10,
+    marginTop: 10,
+    color: 'red',
+    fontWeight: "bold",
+    fontSize: 12,
+    fontStyle: "italic",
+  }, 
   container: {
     display: "grid",
     backgroundColor: "#e5e5e5",
@@ -234,10 +279,10 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     // flexDirection: 'row',
-    height: 300,
+    height: 400,
     marginLeft: 10,
     marginRight: 10,
-    marginTop: 50,
+    marginTop: 10,
   },
   input: {
     height: 40,
