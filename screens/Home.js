@@ -1,80 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Keyboard,
-  Pressable,
+  Alert,
 } from "react-native";
-import { firebase } from "../config";
-import { FontAwesome } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import validator from 'validator';
-import isEmpty from 'validator/lib/isEmpty';
-import isDate from 'validator/lib/isDate';
+import isEmpty from "validator/lib/isEmpty";
+import isDate from "validator/lib/isDate";
 
 const Home = () => {
-  const [trips, setTrips] = useState([]);
-  const tripRef = firebase.firestore().collection("trips");
   const [addHeading, setAddHeading] = useState("");
   const [addDestination, setAddDestination] = useState("");
   const [addDate, setAddDate] = useState("");
   const [addRisk, setAddRisk] = useState("");
   const [addDescription, setAddDescription] = useState("");
   const [validationMsg, setValidationMsg] = useState("");
-  const navigation = useNavigation();
-  
-  //fetch data
-  useEffect(() => {
-    tripRef.orderBy("createdAt", "desc").onSnapshot((querySnapshot) => {
-      const trips = [];
-      querySnapshot.forEach((doc) => {
-        const { heading, destination, date, risk, description } = doc.data();
-        trips.push({
-          id: doc.id,
-          heading,
-          destination,
-          date,
-          risk,
-          description,
-        });
-      });
-      setTrips(trips);
-    });
-  }, []);
-
-  //delete from firestore db
-
-  const deleteTrip = (trips) => {
-    tripRef
-      .doc(trips.id)
-      .delete()
-      .then(() => {
-        //show a successful alert
-        alert("Deleted successfully");
-      })
-      .catch((err) => {
-        alert(err);
-      });
-  };
 
   //Add trip
   const addTrip = (trip) => {
-    const isValid =validateAll();
-    if(!isValid) return;
-    //get the timestamp
-    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-    const data = {
-      heading: addHeading,
-      destination: addDestination,
-      date: addDate,
-      risk: addRisk,
-      description: addDescription,
-      createdAt: timestamp,
-    };
+    const isValid = validateAll();
+    if (!isValid) return;
     if (
       addHeading.length == 0 ||
       addDestination.length == 0 ||
@@ -83,48 +30,51 @@ const Home = () => {
     ) {
       alert("Need to fill all required fields!");
     } else {
-      tripRef
-        .add(data)
-        .then(() => {
-          setAddHeading("");
-          setAddDestination("");
-          setAddDate("");
-          setAddRisk("");
-          setAddDescription("");
-          //release keyboard
-          Keyboard.dismiss();
-        })
-        .catch((err) => {
-          alert(err);
-        });
+      Alert.alert(
+        "Check again before submit!",
+        `Name: ${addHeading} \n Destination: ${addDestination} \n  Date: ${addDate} \n Risk Assessment: ${addRisk} \n Description: ${addDescription}`,
+        [
+          { text: "Submit", onPress: () => console.log("Yes is pressed!") },
+          { text: "Cancel", onPress: () => noHandler() },
+        ]
+      );
     }
+
+    const noHandler = () => {
+      setAddHeading(addHeading);
+      setAddDestination(addDestination);
+      setAddDate(addDate);
+      setAddRisk(addRisk);
+      setAddDescription(addDescription);
+    };
   };
 
   const validateAll = () => {
-    const msg = {}
-    if(isEmpty(addHeading)){
-      msg.addHeading = "Please input name of trip"
+    const msg = {};
+    if (isEmpty(addHeading)) {
+      msg.addHeading = "Please input name of trip";
     }
 
-    if(isEmpty(addDestination)){
-      msg.addDestination = "Please input destination"
+    if (isEmpty(addDestination)) {
+      msg.addDestination = "Please input destination";
     }
 
-    if(isEmpty(addDate)){
-      msg.addDate = "Please input date of trip"
-    }else if(!isDate(addDate)){
-      msg.addDate = "Your date is not correct. Please enter the correct format!"
+    if (isEmpty(addDate)) {
+      msg.addDate = "Please input date of trip";
+    } else if (!isDate(addDate)) {
+      msg.addDate =
+        "Your date is not correct. Please enter the correct format!";
     }
 
-    if(isEmpty(addRisk)){
-      msg.addRisk = "Please input Risk Assessment"
+    if (isEmpty(addRisk)) {
+      msg.addRisk = "Please input Risk Assessment";
     }
 
-    setValidationMsg(msg)
+    setValidationMsg(msg);
 
-    if(Object.keys(msg).length > 0) return false;
-    return true
-  }
+    if (Object.keys(msg).length > 0) return false;
+    return true;
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -132,7 +82,7 @@ const Home = () => {
       <View style={styles.formContainer}>
         <TextInput
           style={styles.input}
-          name = "heading"
+          name="heading"
           placeholder="Name of trip*"
           placeholderTextColor="#aaaaaa"
           onChangeText={(heading) => setAddHeading(heading)}
@@ -184,42 +134,6 @@ const Home = () => {
           <Text style={styles.buttonText}>Add</Text>
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={trips}
-        numColumns={1}
-        renderItem={({ item }) => (
-          <View>
-            <Pressable
-              style={styles.container}
-              onPress={() => navigation.navigate("Detail", { item })}
-            >
-              <FontAwesome
-                name="trash-o"
-                color="red"
-                onPress={() => deleteTrip(item)}
-                style={styles.tripIcon}
-              />
-              <View style={styles.innerContainer}>
-                <Text style={styles.itemHeading}>
-                  {item.heading[0] + item.heading.slice(1)}
-                </Text>
-                <Text style={styles.itemDestination}>
-                  {item.destination[0].toUpperCase() +
-                    item.destination.slice(1)}
-                </Text>
-              </View>
-              <View style={styles.innerContainer}>
-                <Text style={styles.itemDate}>
-                  {"Date: " + item.date[0].toUpperCase() + item.date.slice(1)}
-                </Text>
-                <Text style={styles.itemRisk}>
-                  {"Risk Assessment: " + item.risk[0].toUpperCase() + item.risk.slice(1)}
-                </Text>
-              </View>
-            </Pressable>
-          </View>
-        )}
-      />
     </View>
   );
 };
@@ -228,13 +142,13 @@ export default Home;
 
 const styles = StyleSheet.create({
   errMsg: {
-    marginLeft:10,
+    marginLeft: 10,
     marginTop: 10,
-    color: 'red',
+    color: "red",
     fontWeight: "bold",
     fontSize: 12,
     fontStyle: "italic",
-  }, 
+  },
   container: {
     display: "grid",
     backgroundColor: "#e5e5e5",
@@ -249,33 +163,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "column",
     marginLeft: 45,
-  },
-  itemHeading: {
-    fontWeight: "bold",
-    fontSize: 10,
-    marginRight: 22,
-  },
-  itemDestination: {
-    fontWeight: "bold",
-    fontSize: 10,
-    marginRight: 22,
-    paddingTop: 10,
-  },
-  itemDate: {
-    fontWeight: "bold",
-    fontSize: 10,
-    marginRight: 22,
-  },
-  itemRisk: {
-    fontWeight: "bold",
-    fontSize: 10,
-    marginRight: 22,
-    paddingTop: 10,
-  },
-  itemDescription: {
-    fontWeight: "bold",
-    fontSize: 10,
-    marginRight: 22,
   },
   formContainer: {
     // flexDirection: 'row',
@@ -307,11 +194,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "white",
     fontSize: 20,
-  },
-  tripIcon: {
-    marginTop: 5,
-    fontSize: 20,
-    marginLeft: 14,
   },
   firstText: {
     marginTop: 10,
